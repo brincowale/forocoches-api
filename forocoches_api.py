@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from grab import Grab
-import logging
+import time
 
 
 class ForocochesAPI:
@@ -16,7 +16,6 @@ class ForocochesAPI:
         :param password: password of account
         :return: raise and error if user can't login
         """
-        logging.basicConfig(level=logging.DEBUG)
         g = self.g
         g.go('https://m.forocoches.com/foro/misc.php?do=page&template=ident')
         g.doc.set_input('vb_login_username', username)
@@ -36,7 +35,7 @@ class ForocochesAPI:
         g.go('https://m.forocoches.com/foro/showthread.php?t=' + thread_id)
         try:
             g.doc.set_input('message', message)
-        except:
+        except Exception:
             raise ValueError('Unknown error when trying to reply')
         g.doc.submit()
         # if an error occurred, raise a custom exception
@@ -47,10 +46,30 @@ class ForocochesAPI:
         elif g.doc.text_search(u'Los siguientes errores ocurrieron al enviar este mensaje')\
                 or g.doc.text_search(u'ForoCoches - Responder al Tema'):
             raise PublishError('Ha ocurrido un error al publicar el mensaje')
-        elif g.doc.text_search(message, byte=True):
+        # parameter p is the post id, only appears if the message was published
+        elif '?p=' in g.response.url or '&p=' in g.response.url:
             return True
         else:
             raise PublishError('Ha ocurrido un error desconocido')
+
+    def publish_message_automatically(self, thread_id, message, retry=5, wait_seconds=30):
+        """
+        Publish a message in a specified thread. If reply fail, retry up to the maximum desired retries.
+        :param thread_id: a string with the identifier of tread
+        :param message: a string with text to publish
+        :param retry: the maximum times to retry
+        :param wait_seconds: the time in seconds to wait before try to reply again
+        :return: True when the message has been published, False otherwise
+        """
+        i = 0
+        while i < retry:
+            try:
+                self.publish_message(thread_id, message)
+                return True
+            except:
+                time.sleep(wait_seconds)
+                i += 1
+        return False
 
 
 class DuplicatedMessageError(LookupError):
