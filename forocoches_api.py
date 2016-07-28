@@ -21,7 +21,7 @@ class ForocochesAPI:
         g.doc.set_input('vb_login_username', username)
         g.doc.set_input('vb_login_password', password)
         g.doc.submit()
-        if 'Usuario y contrase&ntilde;a equivocados' in g.response.body:
+        if b'Usuario y contrase&ntilde;a equivocados' in g.response.body:
             raise LoginError('User not logged in')
 
     def publish_message(self, thread_id, message):
@@ -71,6 +71,15 @@ class ForocochesAPI:
                 i += 1
         return False
 
+    def delete_post(self, post_id):
+        try:
+            g = self.g
+            g.go('http://m.forocoches.com/foro/editpost.php?do=editpost&p=' + post_id)
+            g.doc.set_input('deletepost', 'delete')
+            g.doc.submit()
+            return True
+        except:
+            return False
 
 class DuplicatedMessageError(LookupError):
     """raise this when a message is a duplicated of other in less than 5 minutes"""
