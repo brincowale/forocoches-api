@@ -21,7 +21,7 @@ class ForocochesAPI:
         g.doc.set_input('vb_login_username', username)
         g.doc.set_input('vb_login_password', password)
         g.doc.submit()
-        if b'Usuario y contrase&ntilde;a equivocados' in g.response.body:
+        if b'Usuario y contrase&ntilde;a equivocados' in g.doc.body:
             raise LoginError('User not logged in')
 
     def publish_message(self, thread_id, message):
@@ -34,10 +34,11 @@ class ForocochesAPI:
         g = self.g
         g.go('https://m.forocoches.com/foro/showthread.php?t=' + thread_id)
         try:
-            g.doc.set_input('message', message)
+            g.doc.set_input_by_id('vB_Editor_QR_textarea', message)
+            g.doc.choose_form(id="qrform")
+            g.doc.submit()
         except Exception:
             raise ValueError('Unknown error when trying to reply')
-        g.doc.submit()
         # if an error occurred, raise a custom exception
         if g.doc.text_search(u'Este mensaje es un duplicado de otro mensaje que ha sido creado'):
             raise DuplicatedMessageError('Mensaje duplicado en los útimos 5 minutos')
@@ -47,7 +48,7 @@ class ForocochesAPI:
                 or g.doc.text_search(u'ForoCoches - Responder al Tema'):
             raise PublishError('Ha ocurrido un error al publicar el mensaje')
         # parameter p is the post id, only appears if the message was published
-        elif '?p=' in g.response.url or '&p=' in g.response.url:
+        elif '?p=' in g.doc.url or '&p=' in g.doc.url:
             return True
         else:
             raise PublishError('Ha ocurrido un error desconocido')
